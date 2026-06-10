@@ -23,3 +23,25 @@ __pycache__/
 # system
 .DS_Store
 Thumbs.db
+weights/
+
+# pretrained and experiment weights
+weights/
+*.pt
+*.pth
+*.onnx
+*.engine
+runs/**/weights/
+
+# datasets
+datasets_yolo/
+datasets_raw/
+
+# runtime logs
+*.log
+
+# cache
+__pycache__/
+*.pyc
+.cache/
+.ipynb_checkpoints/

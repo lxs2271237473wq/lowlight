@@ -1,81 +1,95 @@
-from __future__ import annotations
-
 from pathlib import Path
+import yaml
 from ultralytics import YOLO
 
-from tool.config_utils import load_yaml, ensure_dir
-from tool.result_utils import extract_train_metrics, find_best_weight
-from tool.table_utils import ensure_summary_table, append_summary_row, update_global_best
+from tool.update_best_epoch import build_summary_row, upsert_summary
 
 
-def main() -> None:
+def load_yaml(path):
+    path = Path(path)
+    with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def main():
     cfg = load_yaml("train_config.yaml")
-    exp = cfg.get("experiment", {})
-    train = cfg.get("train", {})
-    output = cfg.get("output", {})
 
-    name = exp.get("name", "unnamed_experiment")
-    stage = exp.get("stage", "baseline")
-    module = exp.get("module", "baselines")
+    exp = cfg["experiment"]
+    tr = cfg["train"]
+    out = cfg["output"]
+
+    exp_name = exp["name"]
+    stage = exp.get("stage", "")
+    module = exp["module"]
     note = exp.get("note", "")
 
-    project_root = Path(output.get("project_root", "runs"))
-    project = ensure_dir(project_root / module)
-    module_table = project / f"{module}_summary.csv"
-    ensure_summary_table(module_table)
-    ensure_summary_table("baseline_summary.csv")
+    project_root = Path(out.get("project_root", "runs"))
+    project_dir = project_root / module
+    project_dir.mkdir(parents=True, exist_ok=True)
 
-    model_path = train.get("model")
-    if not model_path:
-        raise ValueError("train.model is required in train_config.yaml")
+    model_path = tr["model"]
+    data_path = tr["data"]
 
-    data_yaml = train.get("data")
-    if not data_yaml:
-        raise ValueError("train.data is required in train_config.yaml")
+    print("=" * 80)
+    print(f"Experiment: {exp_name}")
+    print(f"Stage: {stage}")
+    print(f"Module: {module}")
+    print(f"Model: {model_path}")
+    print(f"Data: {data_path}")
+    print(f"Epochs: {tr.get('epochs')}")
+    print(f"Image size: {tr.get('imgsz')}")
+    print(f"Batch: {tr.get('batch')}")
+    print(f"Output project: {project_dir}")
+    print(f"Output name: {exp_name}")
+    print("=" * 80)
 
     model = YOLO(model_path)
 
-    train_args = dict(train)
-    train_args.pop("model", None)
-    train_args["project"] = str(project)
-    train_args["name"] = name
-    train_args["save_period"] = output.get("save_period", -1)
+    model.train(
+        data=data_path,
+        epochs=tr.get("epochs", 100),
+        imgsz=tr.get("imgsz", 640),
+        batch=tr.get("batch", 16),
+        device=tr.get("device", 0),
+        workers=tr.get("workers", 8),
+        seed=tr.get("seed", 42),
+        optimizer=tr.get("optimizer", "auto"),
+        lr0=tr.get("lr0", 0.01),
+        patience=tr.get("patience", 50),
+        pretrained=tr.get("pretrained", True),
+        save_period=out.get("save_period", -1),
+        project=str(project_dir),
+        name=exp_name,
+        exist_ok=tr.get("exist_ok", True),
+    )
 
-    result = model.train(**train_args)
+    result_dir = project_dir / exp_name
+    module_summary = project_dir / f"{module}_summary.csv"
+    root_summary = Path("baseline_summary.csv")
 
-    result_dir = project / name
-    metrics = extract_train_metrics(result)
-    weight_path = find_best_weight(result_dir)
+    row = build_summary_row(
+        experiment_name=exp_name,
+        stage=stage,
+        module=module,
+        model=model_path,
+        dataset=data_path,
+        epochs=str(tr.get("epochs", "")),
+        imgsz=str(tr.get("imgsz", "")),
+        batch=str(tr.get("batch", "")),
+        result_dir=str(result_dir),
+        note=note,
+    )
 
-    row = {
-        "experiment_name": name,
-        "stage": stage,
-        "module": module,
-        "model": str(model_path),
-        "dataset": str(data_yaml),
-        "epochs": train.get("epochs", ""),
-        "imgsz": train.get("imgsz", ""),
-        "batch": train.get("batch", ""),
-        "precision": metrics.get("precision", ""),
-        "recall": metrics.get("recall", ""),
-        "map50": metrics.get("map50", ""),
-        "map50_95": metrics.get("map50_95", ""),
-        "params": metrics.get("params", ""),
-        "gflops": metrics.get("gflops", ""),
-        "fps": metrics.get("fps", ""),
-        "weight_path": weight_path,
-        "result_dir": str(result_dir),
-        "is_best": "",
-        "note": note,
-    }
+    upsert_summary(module_summary, row)
+    upsert_summary(root_summary, row)
 
-    append_summary_row(module_table, row)
-    update_global_best("baseline_summary.csv", row)
-
-    print(f"\nTraining finished: {name}")
+    print("\nTraining finished.")
     print(f"Result directory: {result_dir}")
-    print(f"Module table: {module_table}")
-    print("Global table: baseline_summary.csv")
+    print(f"Module summary: {module_summary}")
+    print(f"Root summary: {root_summary}")
+    print(f"Best epoch: {row.get('best_epoch')}")
+    print(f"Best mAP50: {row.get('best_map50')}")
+    print(f"Best mAP50-95: {row.get('best_map50_95')}")
 
 
 if __name__ == "__main__":
