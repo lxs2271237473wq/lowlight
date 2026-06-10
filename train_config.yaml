@@ -1,14 +1,14 @@
 # Main training configuration. Edit this file, then run: python train.py
 
 experiment:
-  name: exdark_yolo11s_baseline
+  name: aodraw_yolo11s_baseline
   stage: baseline
   module: baselines
   note: initial baseline
 
 train:
   model: weights/pretrained/yolo11s.pt
-  data: datasets_yolo/ExDark_YOLO/exdark.yaml
+  data: datasets_yolo/AODRaw_sRGB_YOLO/aodraw.yaml
   epochs: 100
   imgsz: 640
   batch: 16

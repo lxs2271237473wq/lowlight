@@ -12,7 +12,9 @@ def load_yaml(path):
 
 
 def main():
-    cfg = load_yaml("train_config.yaml")
+    root = Path.cwd().resolve()
+
+    cfg = load_yaml(root / "train_config.yaml")
 
     exp = cfg["experiment"]
     tr = cfg["train"]
@@ -23,12 +25,26 @@ def main():
     module = exp["module"]
     note = exp.get("note", "")
 
-    project_root = Path(out.get("project_root", "runs"))
+    if "/" in exp_name or "\\" in exp_name:
+        raise ValueError(f"experiment.name 不能包含路径符号: {exp_name}")
+
+    if "/" in module or "\\" in module:
+        raise ValueError(f"experiment.module 不能包含路径符号: {module}")
+
+    project_root = root / out.get("project_root", "runs")
     project_dir = project_root / module
+    result_dir = project_dir / exp_name
+
     project_dir.mkdir(parents=True, exist_ok=True)
 
-    model_path = tr["model"]
-    data_path = tr["data"]
+    model_path = root / tr["model"] if not Path(tr["model"]).is_absolute() else Path(tr["model"])
+    data_path = root / tr["data"] if not Path(tr["data"]).is_absolute() else Path(tr["data"])
+
+    if not model_path.exists():
+        raise FileNotFoundError(f"模型权重不存在: {model_path}")
+
+    if not data_path.exists():
+        raise FileNotFoundError(f"数据集 yaml 不存在: {data_path}")
 
     print("=" * 80)
     print(f"Experiment: {exp_name}")
@@ -39,14 +55,15 @@ def main():
     print(f"Epochs: {tr.get('epochs')}")
     print(f"Image size: {tr.get('imgsz')}")
     print(f"Batch: {tr.get('batch')}")
-    print(f"Output project: {project_dir}")
-    print(f"Output name: {exp_name}")
+    print(f"Project dir: {project_dir}")
+    print(f"Experiment name: {exp_name}")
+    print(f"Expected result dir: {result_dir}")
     print("=" * 80)
 
-    model = YOLO(model_path)
+    model = YOLO(str(model_path))
 
     model.train(
-        data=data_path,
+        data=str(data_path),
         epochs=tr.get("epochs", 100),
         imgsz=tr.get("imgsz", 640),
         batch=tr.get("batch", 16),
@@ -63,20 +80,25 @@ def main():
         exist_ok=tr.get("exist_ok", True),
     )
 
-    result_dir = project_dir / exp_name
+    if not result_dir.exists():
+        raise RuntimeError(
+            f"训练结束后没有找到预期结果目录: {result_dir}\n"
+            f"请检查 Ultralytics 实际保存路径。"
+        )
+
     module_summary = project_dir / f"{module}_summary.csv"
-    root_summary = Path("baseline_summary.csv")
+    root_summary = root / "baseline_summary.csv"
 
     row = build_summary_row(
         experiment_name=exp_name,
         stage=stage,
         module=module,
-        model=model_path,
-        dataset=data_path,
+        model=str(Path(tr["model"])),
+        dataset=str(Path(tr["data"])),
         epochs=str(tr.get("epochs", "")),
         imgsz=str(tr.get("imgsz", "")),
         batch=str(tr.get("batch", "")),
-        result_dir=str(result_dir),
+        result_dir=str(result_dir.relative_to(root)),
         note=note,
     )
 
