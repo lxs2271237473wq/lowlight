@@ -1,0 +1,20 @@
+# Validation configuration. Edit this file, then run: python val.py
+
+experiment:
+  name: exdark_yolo11s_baseline_val
+  module: baselines
+
+val:
+  model: runs/baselines/exdark_yolo11s_baseline/weights/best.pt
+  data: datasets_yolo/ExDark_YOLO/exdark.yaml
+  imgsz: 640
+  batch: 16
+  device: 0
+  conf: 0.001
+  iou: 0.6
+  save_txt: false
+  save_conf: false
+  exist_ok: true
+
+output:
+  project_root: runs

@@ -1,0 +1,25 @@
+# datasets
+datasets_yolo/
+datasets_raw/
+
+# model weights and exported models
+*.pt
+*.pth
+*.onnx
+*.engine
+*.torchscript
+
+# training outputs that should not be pushed unless explicitly needed
+runs/**/weights/
+runs/**/train*/
+runs/**/val*/
+
+# cache
+__pycache__/
+*.pyc
+.cache/
+.ipynb_checkpoints/
+
+# system
+.DS_Store
+Thumbs.db
