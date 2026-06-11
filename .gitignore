@@ -45,3 +45,24 @@ __pycache__/
 *.pyc
 .cache/
 .ipynb_checkpoints/
+
+# datasets
+datasets_yolo/
+datasets_raw/
+
+# weights
+weights/
+*.pt
+*.pth
+*.onnx
+*.engine
+runs/**/weights/
+
+# cache
+__pycache__/
+*.pyc
+.cache/
+.ipynb_checkpoints/
+
+# logs
+*.log
