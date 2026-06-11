@@ -1,0 +1,16 @@
+path: /root/private_data/lowlight-object-detection/datasets_yolo/ExDark_YOLO
+train: /root/private_data/lowlight-object-detection/runs/module1_lqa_weight/exdark_train_lqa.txt
+val: images/val
+names:
+  0: Bicycle
+  1: Boat
+  2: Bottle
+  3: Bus
+  4: Car
+  5: Cat
+  6: Chair
+  7: Cup
+  8: Dog
+  9: Motorbike
+  10: People
+  11: Table
