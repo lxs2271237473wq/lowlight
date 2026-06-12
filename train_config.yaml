@@ -1,15 +1,11 @@
-# Main training configuration.
-# For LQA Loss experiments, run: python train_lqa_loss.py
-
 experiment:
-  name: exdark_yolo11s_lqa_loss_warmup
+  name: aodraw_yolo11s_lqa_loss_warmup
   stage: module1
   module: module1_lqa_loss
   note: loss-level low-quality-aware weighting with warmup and clipping
-
 train:
   model: weights/pretrained/yolo11s.pt
-  data: datasets_yolo/ExDark_YOLO/exdark.yaml
+  data: datasets_yolo/AODRaw_sRGB_YOLO/aodraw.yaml
   epochs: 100
   imgsz: 640
   batch: 16
@@ -21,7 +17,6 @@ train:
   patience: 100
   pretrained: true
   exist_ok: true
-
 lqa_loss:
   enabled: true
   alpha: 0.25
@@ -30,7 +25,21 @@ lqa_loss:
   small_area_thr: 0.01
   darkness_weight: 0.6
   small_weight: 0.4
-
+  object_level: false
+  batch_level_weight: true
 output:
   project_root: runs
   save_period: -1
+name: aodraw_yolo11s_lqa_loss_warmup
+exp_name: aodraw_yolo11s_lqa_loss_warmup
+experiment_name: aodraw_yolo11s_lqa_loss_warmup
+lqa:
+  enabled: true
+  alpha: 0.25
+  max_weight: 1.25
+  warmup_epochs: 20
+  small_area_thr: 0.01
+  darkness_weight: 0.6
+  small_weight: 0.4
+  object_level: false
+  batch_level_weight: true
